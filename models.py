@@ -61,6 +61,24 @@ class Conference(ndb.Model):
     maxAttendees    = ndb.IntegerProperty()
     seatsAvailable  = ndb.IntegerProperty()
 
+
+class Session(ndb.Model):
+    """Session - Each conference can have different sessions"""
+    _use_memcache = True
+
+    typeOfSession = ndb.StringProperty(choices=['lecture', 'keynote', 'workshop'])    # possible choices for session
+    speaker = ndb.StringProperty(required=True)                          # speaker of session
+    name = ndb.StringProperty(required=True)                             # title of the session
+    duration = ndb.IntegerProperty()                        # length in minutes
+    startDate = ndb.DateProperty()
+    startTime = ndb.TimeProperty()
+    highlights = ndb.StringProperty(repeated=True)          # one or more arguments for the session
+    conference = ndb.KeyProperty(kind='Conference')         # the conference to which the session is related
+
+    @classmethod
+    def get_sessions_by_conference(cls, conference_key):
+        return cls.query(cls.conference == conference_key)
+
 class ConferenceForm(messages.Message):
     """ConferenceForm -- Conference outbound form message"""
     name            = messages.StringField(1)
@@ -76,9 +94,26 @@ class ConferenceForm(messages.Message):
     websafeKey      = messages.StringField(11)
     organizerDisplayName = messages.StringField(12)
 
+
+class SessionForm(messages.Message):
+    """Session Form -- Conference outbound form message"""
+    name = messages.StringField(1)
+    highlights = messages.StringField(2, repeated=True)
+    speaker = messages.StringField(3)
+    duration = messages.StringField(4)
+    startDate = messages.StringField(5)
+    startTime = messages.StringField(6)
+    typeOfSession = messages.StringField(7)
+
+
 class ConferenceForms(messages.Message):
     """ConferenceForms -- multiple Conference outbound form message"""
     items = messages.MessageField(ConferenceForm, 1, repeated=True)
+
+
+class SessionForms(messages.Message):
+    """SessionForms -- multiple Sessions outbound form message"""
+    items = messages.MessageField(SessionForm, 1, repeated=True)
 
 class TeeShirtSize(messages.Enum):
     """TeeShirtSize -- t-shirt size enumeration value"""
