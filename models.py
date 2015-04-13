@@ -77,7 +77,13 @@ class Session(ndb.Model):
 
     @classmethod
     def get_sessions_by_conference(cls, conference_key):
+        """Returns the query by conference key"""
         return cls.query(cls.conference == conference_key)
+
+    @classmethod
+    def get_sessions_by_speaker(cls, speaker_name):
+        """Returns the query by Speaker"""
+        return cls.query(cls.speaker == speaker_name).fetch()
 
 class ConferenceForm(messages.Message):
     """ConferenceForm -- Conference outbound form message"""
