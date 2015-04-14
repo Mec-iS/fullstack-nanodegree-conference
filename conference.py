@@ -702,7 +702,7 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getSessionsBySpeaker')
     def getSessionsBySpeaker(self, request):
         """Given a speaker, returns all the sessions with that speaker"""
-        sessions = Session.get_sessions_by_speaker(request.speakerName).fetch
+        sessions = Session.get_sessions_by_speaker(request.speakerName).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
                 'No sessions for this speaker or wrong speaker name: %s' % request.speakerName)
