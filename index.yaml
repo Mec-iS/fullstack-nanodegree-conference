@@ -102,3 +102,22 @@ indexes:
   properties:
   - name: topics
   - name: name
+
+- kind: Session
+  properties:
+  - name: conference
+  - name: startDate
+  - name: startTime
+
+- kind: Session
+  properties:
+  - name: conference
+  - name: startDate
+  - name: startTime
+    direction: desc
+
+- kind: Session
+  properties:
+  - name: startDate
+  - name: startTime
+    direction: desc

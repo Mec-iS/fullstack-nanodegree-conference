@@ -63,11 +63,11 @@ App Engine application for the Udacity training course.
   - name: speaker
 ```
 
-- Come up with two more queries:
+- Additional Queries:
 
-1. Most of the needs about querying on Conference objects are satisfied in the app by the `conference.queryConferences` method that allows the user to
+-- Most of the needs about querying on Conference objects are satisfied in the app by the `conference.queryConferences` method that allows the user to
 build her/his own query via a JSON defining multiple filters into a POST request, like:
-```
+<pre>
 {
   "filters":
     [
@@ -78,14 +78,38 @@ build her/his own query via a JSON defining multiple filters into a POST request
       }
     ]
   }
-```
+<pre>
 With a request body like this (asking for all the conference in the month of April), any user can query directly the datastore with any filter(s) she(he wants.
-1.On the Session objects it could be useful to have a query on a particular highlight for a particular Conference:
+
+-- On the Session objects it could be useful to have a query on a particular highlight for a particular Conference:
 ```
 ...
 highlight = request.highlight
-sessions = Session.query(Session.conference == ndb.Key(request.sessionKey)).filter(Session.highlights == highlight)
+sessions1 = Session.query(Session.conference == ndb.Key(urlsafe=request.sessionKey)).filter(Session.highlights == highlight)
 ...
        
 ```
 
+-- Another query can be one that let the user to get all the sessions in the same say of a Conference, ordered by startTime
+```
+...
+date = datetime.strptime('2015-4-24', "%Y-%m-%d").date()
+sessions2 = Session.query(Session.conference == ndb.Key(urlsafe=request.conferenceKey)).filter(Session.startDate == date).order(Session.startTime)
+...
+       
+```
+
+- Query Problem:
+Probably the problem is that: `Only one inequality filter per query is supported`.<br>
+The datastore doesn't allow to have two inequality filters in the same query: 
+```
+sessions = Session.query(Session.typeOfSession != 'workshop', 
+                          Session.startTime < datetime.strptime('19:00', '%H:%M').time())  # IT DOESN'T WORK
+```
+Returns:
+```                 
+BadRequestError: Only one inequality filter per query is supported. Encountered both typeOfSession and startTime
+```
+
+Probably the easiest way is to apply a filter via query and then iterate the results to find the objects that match the second filter using list comprehension.<br>
+Otherwise it's possible to run two separate queries and then look with some scripting at the intersection of this two query sets.
