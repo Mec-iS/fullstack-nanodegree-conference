@@ -27,6 +27,7 @@ class Profile(ndb.Model):
     mainEmail = ndb.StringProperty()
     teeShirtSize = ndb.StringProperty(default='NOT_SPECIFIED')
     conferenceKeysToAttend = ndb.StringProperty(repeated=True)
+    sessionKeysWishlist = ndb.StringProperty(repeated=True)
 
 class ProfileMiniForm(messages.Message):
     """ProfileMiniForm -- update Profile form message"""
@@ -67,23 +68,24 @@ class Session(ndb.Model):
     _use_memcache = True
 
     typeOfSession = ndb.StringProperty(choices=['lecture', 'keynote', 'workshop'])    # possible choices for session
-    speaker = ndb.StringProperty(required=True)                          # speaker of session
-    name = ndb.StringProperty(required=True)                             # title of the session
-    duration = ndb.IntegerProperty()                        # length in minutes
+    speaker = ndb.StringProperty(required=True)                                       # speaker of session
+    name = ndb.StringProperty(required=True)                                          # title of the session
+    duration = ndb.IntegerProperty()                                                  # length in minutes
     startDate = ndb.DateProperty()
     startTime = ndb.TimeProperty()
-    highlights = ndb.StringProperty(repeated=True)          # one or more arguments for the session
-    conference = ndb.KeyProperty(kind='Conference')         # the conference to which the session is related
+    highlights = ndb.StringProperty(repeated=True)                                    # one or more arguments for the session
+    conference = ndb.KeyProperty(kind='Conference')                                   # the conference to which the session is related
 
     @classmethod
     def get_sessions_by_conference(cls, conference_key):
-        """Returns the query by conference key"""
+        """Returns the Query by conference key"""
         return cls.query(cls.conference == conference_key)
 
     @classmethod
     def get_sessions_by_speaker(cls, speaker_name):
-        """Returns the query by Speaker"""
-        return cls.query(cls.speaker == speaker_name).fetch()
+        """Returns the Query by Speaker"""
+        return cls.query(cls.speaker == speaker_name)
+
 
 class ConferenceForm(messages.Message):
     """ConferenceForm -- Conference outbound form message"""
@@ -106,7 +108,7 @@ class SessionForm(messages.Message):
     name = messages.StringField(1)
     highlights = messages.StringField(2, repeated=True)
     speaker = messages.StringField(3)
-    duration = messages.StringField(4)
+    duration = messages.IntegerField(4)
     startDate = messages.StringField(5)
     startTime = messages.StringField(6)
     typeOfSession = messages.StringField(7)

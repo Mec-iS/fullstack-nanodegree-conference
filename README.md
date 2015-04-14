@@ -30,3 +30,23 @@ App Engine application for the Udacity training course.
 [4]: https://console.developers.google.com/
 [5]: https://localhost:8080/
 [6]: https://developers.google.com/appengine/docs/python/endpoints/endpoints_tool
+
+
+
+## Task 1:
+### Design:
+- I choosed to not use inheritance for Session as the datastore allows, because I prefer to explicitly define a property ('conference') to define the relation. It sounds to me more logical and readable.
+
+### Endpoints:
+- `sessions/create/{ConferenceKey}` > `conference.createSession`
+- `sessions/{ConferenceKey}` > `conference.getConferenceSessions`
+- `sessions/by/speaker/{speakerName}` > `conference.getSessionsBySpeaker`
+- `sessions/{ConferenceKey}/type/{sessionType}` > `conference.getConferenceSessionsByType`
+
+## Task 2:
+### Design:
+- I choosed to add the wishlist as a property ('sessionKeysWishlist') in the Profile model, as I think is the most efficient way to do it.
+
+### Endpoints:
+- `wishlist/add/{websafeSessionKey}` > `conference.addSessionToWishlist`
+- `wishlist/get` > `conference.getSessionsInWishlist`
