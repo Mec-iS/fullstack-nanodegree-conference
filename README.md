@@ -50,3 +50,42 @@ App Engine application for the Udacity training course.
 ### Endpoints:
 - `wishlist/add/{websafeSessionKey}` > `conference.addSessionToWishlist`
 - `wishlist/get` > `conference.getSessionsInWishlist`
+
+## Task 3:
+- I added the index needed by the queries for Session objects in the index.yaml as explained in the file and in the documentation:
+```
+- kind: Session
+  properties:
+  - name: conference
+
+- kind: Session
+  properties:
+  - name: speaker
+```
+
+- Come up with two more queries:
+
+1. Most of the needs about querying on Conference objects are satisfied in the app by the `conference.queryConferences` method that allows the user to
+build her/his own query via a JSON defining multiple filters into a POST request, like:
+```
+{
+  "filters":
+    [
+      {
+        "field":"MONTH"
+        "operator":"="
+        "value":"4"
+      }
+    ]
+  }
+```
+With a request body like this (asking for all the conference in the month of April), any user can query directly the datastore with any filter(s) she(he wants.
+1.On the Session objects it could be useful to have a query on a particular highlight for a particular Conference:
+```
+...
+highlight = request.highlight
+sessions = Session.query(Session.conference == ndb.Key(request.sessionKey)).filter(Session.highlights == highlight)
+...
+       
+```
+
