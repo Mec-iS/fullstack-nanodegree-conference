@@ -88,11 +88,11 @@ sessions1 = Session.query(Session.conference == ndb.Key(urlsafe=request.conferen
 ...
 ```
 
--- Query 2: Another query can be one that let the user to get all the sessions in the same say of a Conference, ordered by startTime
+-- Query 2: Another query can be one that let the user to get all the sessions in the same day of a Conference, ordered by startTime
 ```
 ...
 date = datetime.strptime('2015-4-24', "%Y-%m-%d").date()
-sessions2 = Session.query(Session.conference == ndb.Key(urlsafe=request.conferenceKey)).filter(Session.startDate == date).order(Session.startTime)
+sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.conferenceKey)).filter(Session.startDate == date).order(Session.startTime)
 ...
        
 ```
@@ -125,11 +125,11 @@ Otherwise it's possible to run two separate queries and then look with some scri
 ## Task 4
 
 ### Design:
-I implemented Memcache for featured speakers at line 567 in `conference.py`, inside `_createSessionObject()`. After a session is put in the datastore I check if the speaker has more than one session in that conference.
+I implemented Memcache for featured speakers at line 567 in `conference.py`, inside `_createSessionObject()`. After a session is put in the datastore the script checks if the speaker has more than one session in that conference.
 As a key for Memcache I choosed a string like `{websafeConferenceKey}:featured`, to specify that is referred to featured speakers of a given Conference.
 
 ## Endpoint:
-conference/{websafeConferenceKey}/featuredSpeaker` > `conference.getFeaturedSpeaker`
+`conference/{websafeConferenceKey}/featuredSpeaker` > `conference.getFeaturedSpeaker`
 
 ## Comment:
 The endpoint serves exclusively from the cache.<br>
@@ -142,4 +142,5 @@ I created a custom message class to handle the data (`model.FeaturedSpeakerMessa
 }
 ```
 There could be a problem of memcache expiration, because it could be possible that featured speakers are not loaded in memcache if any user created a Session recently; 
-I try a workaround with setting a quite long period of expiration. I think solving this issue more consistently goes outside the scope of the task.
+I try a workaround with setting a quite long period of expiration. It can be solved by setting a proper expiration time, based on observations about the loads of the app 
+(e.g. empirically, how often the cache got set usually during production time).
