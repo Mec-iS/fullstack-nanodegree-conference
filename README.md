@@ -133,14 +133,9 @@ As a key for Memcache I choosed a string like `{websafeConferenceKey}:featured`,
 
 ## Comment:
 The endpoint serves exclusively from the cache.<br>
-I created a custom message class to handle the data (`model.FeaturedSpeakerMessage`), so the endopoint returns a structure with the Conference key and a 'data' property with a JSON inside like:
-```
-{
- "conferenceKey": "{someKey}",
- "data": "{\"{speakerName}\": [\"{sessionName}\", \"{sessionName}\", \"{sessionName}\", \"{sessionName}\"], 
-              \"speakerName}\": [\"{sessionName}\", \"{sessionName}\"]}"
-}
-```
+I created a custom message class to handle the message (`model.FeaturedSpeakerMessage`) and a custom form class (`model.FeaturedSpeakerForm`), so the endopoint returns a structure with the Conference key and a 'featured' property
+containing the Conference key and the list of featured speakers with relative sessions.
+
 There could be a problem of memcache expiration, because it could be possible that featured speakers are not loaded in memcache if any user created a Session recently; 
 I try a workaround with setting a quite long period of expiration. It can be solved by setting a proper expiration time, based on observations about the loads of the app 
-(e.g. empirically, how often the cache got set usually during production time).
+(e.g. empirically, how often the cache get set usually during production time). Or a cron job that periodically add to the cache the  `{websafeConferenceKey}:featured` key with proper values.
