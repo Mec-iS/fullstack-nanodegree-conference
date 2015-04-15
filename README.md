@@ -78,7 +78,7 @@ build her/his own query via a JSON defining multiple filters into a POST request
       }
     ]
   }
-<pre>
+</pre>
 With a request body like this (asking for all the conference in the month of April), any user can query directly the datastore with any filter(s) she(he wants.
 
 -- On the Session objects it could be useful to have a query on a particular highlight for a particular Conference:
