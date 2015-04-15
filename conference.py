@@ -41,7 +41,7 @@ from models import ConferenceQueryForm
 from models import ConferenceQueryForms
 from models import TeeShirtSize
 
-from models import Session, SessionForm, SessionForms, FeaturedSpeakerMessage
+from models import Session, SessionForm, SessionForms, FeaturedSpeakerForm, FeaturedSpeakerMessage
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -659,12 +659,22 @@ class ConferenceApi(remote.Service):
             mem_key = request.websafeConferenceKey + ':featured'
             if memcache.get(mem_key) is None:
                 # key: '{webKey}:featured', add to memcache
-                sessions = {data['speaker']: [f.name for f in featured_speaker]}
+                sessions = [{'speaker': data['speaker'], 'sessions': [f.name for f in featured_speaker]}]
                 memcache.add(mem_key, sessions, 36000)
             else:
                 # key: '{webKey}:featured', set memcache
-                state = dict(memcache.get(mem_key))
-                state[data['speaker']] = [f.name for f in featured_speaker]
+                state = list(memcache.get(mem_key))
+                in_list = False
+                for s in state:
+                    if s['speaker'] == data['speaker']:
+                        # speaker is already in memcache object, append to sessions list
+                        in_list = True
+                        s['sessions'] = [f.name for f in featured_speaker]
+                        break
+                if not in_list:
+                    # speaker is not in memcache object, append speaker to list
+                    state.append({'speaker': data['speaker'], 'sessions': [f.name for f in featured_speaker]})
+
                 memcache.set(mem_key, state)
 
         return self._copySessionToForm(request)
@@ -778,13 +788,26 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getFeaturedSpeaker')
     def getFeaturedSpeaker(self, request):
         """Get featured speaker of a given conference, using Memcache"""
+
+        def _copyFeaturedToForm(data):
+            """Copy relevant fields from Session to SessionForm."""
+            speaker_form = FeaturedSpeakerForm()
+            speaker_form.speaker = data['speaker']
+            speaker_form.sessions = data['sessions']
+            speaker_form.check_initialized()
+            return speaker_form
+
         mem_key = request.websafeConferenceKey + ':featured'
         if memcache.get(mem_key) is None:
             # there is no featured speaker for this conference so return a void structure
-            return FeaturedSpeakerMessage(data=json.dumps({}), websafeKey=request.websafeConferenceKey)
+            return FeaturedSpeakerMessage(featured=[], websafeKey=request.websafeConferenceKey)
 
-        data = json.dumps(memcache.get(mem_key))
-        return FeaturedSpeakerMessage(data=data, websafeKey=request.websafeConferenceKey)
+        data = memcache.get(mem_key)
+        print data
+        return FeaturedSpeakerMessage(
+            featured=[_copyFeaturedToForm(d) for d in data],
+            websafeKey=request.websafeConferenceKey
+        )
 
 # - - - User's Wishlist - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
