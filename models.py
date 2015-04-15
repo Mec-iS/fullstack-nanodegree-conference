@@ -49,6 +49,11 @@ class BooleanMessage(messages.Message):
     """BooleanMessage-- outbound Boolean value message"""
     data = messages.BooleanField(1)
 
+class FeaturedSpeakerMessage(messages.Message):
+    """FeaturedSpeakerMessage - outbound message for featured speakers"""
+    data = messages.StringField(1)
+    websafeKey = messages.StringField(2)
+
 class Conference(ndb.Model):
     """Conference -- Conference object"""
     name            = ndb.StringProperty(required=True)

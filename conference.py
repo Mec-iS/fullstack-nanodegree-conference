@@ -41,7 +41,7 @@ from models import ConferenceQueryForm
 from models import ConferenceQueryForms
 from models import TeeShirtSize
 
-from models import Session, SessionForm, SessionForms
+from models import Session, SessionForm, SessionForms, FeaturedSpeakerMessage
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -637,16 +637,12 @@ class ConferenceApi(remote.Service):
 
         # convert dates from strings
         try:
-            #print data['startDate']
             data['startDate'] = datetime.strptime(data['startDate'][:10], "%Y-%m-%d").date()
         except Exception:
             raise ValueError("'startDate' needed. Cannot be void or in the wrong format (year-month-day)")
 
         if data['startTime']:
-            #print data['startTime']
             data['startTime'] = datetime.strptime(data['startTime'], '%H:%M').time()
-            #print data['startTime']
-            #print type(data['startTime'])
 
         # check if duration is an integer
         try:
@@ -656,6 +652,20 @@ class ConferenceApi(remote.Service):
 
         # creation of Session & return (modified) SessionForm
         Session(**data).put()
+
+        # check if featured speaker, if true use memcache
+        featured_speaker = Session.query(Session.conference == data['conference']).filter(Session.speaker == data['speaker'])
+        if featured_speaker.count() != 1:
+            mem_key = request.websafeConferenceKey + ':featured'
+            if memcache.get(mem_key) is None:
+                # key: '{webKey}:featured', add to memcache
+                sessions = {data['speaker']: [f.name for f in featured_speaker]}
+                memcache.add(mem_key, sessions, 36000)
+            else:
+                # key: '{webKey}:featured', set memcache
+                state = dict(memcache.get(mem_key))
+                state[data['speaker']] = [f.name for f in featured_speaker]
+                memcache.set(mem_key, state)
 
         return self._copySessionToForm(request)
 
@@ -763,6 +773,18 @@ class ConferenceApi(remote.Service):
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
         )
+
+    @endpoints.method(SESSION_GET_REQUEST, FeaturedSpeakerMessage, path='conference/{websafeConferenceKey}/featuredSpeaker',
+            http_method='GET', name='getFeaturedSpeaker')
+    def getFeaturedSpeaker(self, request):
+        """Get featured speaker of a given conference, using Memcache"""
+        mem_key = request.websafeConferenceKey + ':featured'
+        if memcache.get(mem_key) is None:
+            # there is no featured speaker for this conference so return a void structure
+            return FeaturedSpeakerMessage(data=json.dumps({}), websafeKey=request.websafeConferenceKey)
+
+        data = json.dumps(memcache.get(mem_key))
+        return FeaturedSpeakerMessage(data=data, websafeKey=request.websafeConferenceKey)
 
 # - - - User's Wishlist - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
