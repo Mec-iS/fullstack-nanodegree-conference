@@ -64,6 +64,7 @@ App Engine application for the Udacity training course.
 ```
 
 - Additional Queries:
+I have used this [cheatsheet](https://docs.google.com/document/d/1AefylbadN456_Z7BZOpZEXDq8cR8LYu7QgI7bt5V0Iw/edit) to have a general look on the NDB.
 
 -- Most of the needs about querying on Conference objects are satisfied in the app by the `conference.queryConferences` method that allows the user to build her/his own query via a JSON defining multiple filters into a POST request, like:
 <pre>
@@ -137,5 +138,6 @@ I created a custom message class to handle the message (`model.FeaturedSpeakerMe
 containing the Conference key and the list of featured speakers with relative sessions.
 
 There could be a problem of memcache expiration, because it could be possible that featured speakers are not loaded in memcache if any user created a Session recently; 
-I try a workaround with setting a quite long period of expiration. It can be solved by setting a proper expiration time, based on observations about the loads of the app 
-(e.g. empirically, how often the cache get set usually during production time). Or a cron job that periodically add to the cache the  `{websafeConferenceKey}:featured` key with proper values.
+I try a workaround with setting a quite long period of expiration. As far as I know with my experience with GAE It can be solved by setting a 
+proper expiration time, based on observations about the loads of the app (e.g. empirically, how often the cache get set usually during production time). 
+Or a cron job that periodically add to the cache the  `{websafeConferenceKey}:featured` key with proper values taken from the datastore.
