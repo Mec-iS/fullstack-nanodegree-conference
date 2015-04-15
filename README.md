@@ -85,7 +85,7 @@ With a request body like this (asking for all the conference in the month of Apr
 ```
 ...
 highlight = request.highlight
-sessions1 = Session.query(Session.conference == ndb.Key(urlsafe=request.sessionKey)).filter(Session.highlights == highlight)
+sessions1 = Session.query(Session.conference == ndb.Key(urlsafe=request.conferenceKey)).filter(Session.highlights == highlight)
 ...
        
 ```
@@ -98,6 +98,11 @@ sessions2 = Session.query(Session.conference == ndb.Key(urlsafe=request.conferen
 ...
        
 ```
+
+Endpoints:<br>
+`sessions/{websafeConferenceKey}/by/highlights/{highlight}` > `conference.getConferenceSessionsByHighlight`
+`sessions/{websafeConferenceKey}/by/date/{conferenceDate}` > `conference.getConferenceSessionsByDate`
+
 
 - Query Problem:
 Probably the problem is that: `Only one inequality filter per query is supported`.<br>

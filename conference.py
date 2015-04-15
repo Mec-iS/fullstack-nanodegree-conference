@@ -114,6 +114,17 @@ WISHLIST_POST_REQUEST = endpoints.ResourceContainer(
     websafeSessionKey=messages.StringField(1),
 )
 
+HIGHLIGHT_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    websafeConferenceKey=messages.StringField(1),
+    highlight=messages.StringField(2),
+)
+
+DATE_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    websafeConferenceKey=messages.StringField(1),
+    conferenceDate=messages.StringField(2),
+)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -719,6 +730,36 @@ class ConferenceApi(remote.Service):
         if not sessions:
             raise endpoints.NotFoundException(
                 'No sessions for this conference/type couple: %s' % request.sessionType)
+        return SessionForms(
+            items=[self._copySessionToForm(session) for session in sessions]
+        )
+
+    @endpoints.method(HIGHLIGHT_GET_REQUEST, SessionForms,
+            path='sessions/{websafeConferenceKey}/by/highlights/{highlight}',
+            http_method='GET', name='getConferenceSessionsByHighlight')
+    def getConferenceSessionsByHighlight(self, request):
+        """Get all the sessions in a Conference with the given highligh"""
+        highlight = request.highlight
+        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.highlights == highlight)
+        if not sessions:
+            raise endpoints.NotFoundException(
+                'No sessions with this highlights couple: %s' % request.sessionType)
+        return SessionForms(
+            items=[self._copySessionToForm(session) for session in sessions]
+        )
+
+    @endpoints.method(DATE_GET_REQUEST, SessionForms,
+            path='sessions/{websafeConferenceKey}/by/date/{conferenceDate}',
+            http_method='GET', name='getConferenceSessionsByDate')
+    def getConferenceSessionsByDate(self, request):
+        """Get all the session for a Conference in a given date, order by startTime"""
+        date = datetime.strptime(request.conferenceDate, "%Y-%m-%d").date()
+        print date
+        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.startDate == date).order(Session.startTime)
+        print sessions
+        if not sessions:
+            raise endpoints.NotFoundException(
+                'No sessions in this day for this conference: %s' % request.sessionType)
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
         )
