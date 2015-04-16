@@ -46,6 +46,7 @@ App Engine application for the Udacity training course.
 ## Task 2:
 ### Design:
 - I choosed to add the wishlist as a property ('sessionKeysWishlist') in the Profile model, as I think is the most efficient way to do it.
+- The SessionKey can be retrieved via `conference.getConferenceSessions`
 
 ### Endpoints:
 - `wishlist/add/{websafeSessionKey}` > `conference.addSessionToWishlist`

@@ -115,7 +115,7 @@ class ConferenceForm(messages.Message):
 
 
 class SessionForm(messages.Message):
-    """Session Form -- Conference outbound form message"""
+    """Session Form -- Session outbound form message"""
     name = messages.StringField(1)
     highlights = messages.StringField(2, repeated=True)
     speaker = messages.StringField(3)
@@ -123,6 +123,7 @@ class SessionForm(messages.Message):
     startDate = messages.StringField(5)
     startTime = messages.StringField(6)
     typeOfSession = messages.StringField(7)
+    sessionKey = messages.StringField(8)
 
 
 class ConferenceForms(messages.Message):
