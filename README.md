@@ -46,7 +46,7 @@ App Engine application for the Udacity training course.
 ## Task 2:
 ### Design:
 - I choosed to add the wishlist as a property ('sessionKeysWishlist') in the Profile model, as I think is the most efficient way to do it.
-- The SessionKey can be retrieved via `conference.getConferenceSessions`
+- The SessionKey can be retrieved via `conference.getConferenceSessions` or any other endpoint that serves a Session. 
 
 ### Endpoints:
 - `wishlist/add/{websafeSessionKey}` > `conference.addSessionToWishlist`
@@ -127,18 +127,13 @@ Otherwise it's possible to run two separate queries and then look with some scri
 ## Task 4
 
 ### Design:
-I implemented Memcache for featured speakers at line 567 in `conference.py`, inside `_createSessionObject()`. After a session is put in the datastore the script checks if the speaker has more than one session in that conference.
+I implemented Memcache for featured speakers as a Task inside `_createSessionObject()`. After a session is put in the datastore the Task checks if the speaker has more than one session in that conference.
 As a key for Memcache I choosed a string like `{websafeConferenceKey}:featured`, to specify that is referred to featured speakers of a given Conference.
 
 ## Endpoint:
 `conference/{websafeConferenceKey}/featuredSpeaker` > `conference.getFeaturedSpeaker`
 
 ## Comment:
-The endpoint serves exclusively from the cache.<br>
 I created a custom message class to handle the message (`model.FeaturedSpeakerMessage`) and a custom form class (`model.FeaturedSpeakerForm`), so the endopoint returns a structure with the Conference key and a 'featured' property
 containing the Conference key and the list of featured speakers with relative sessions.
 
-There could be a problem of memcache expiration, because it could be possible that featured speakers are not loaded in memcache if any user created a Session recently; 
-I try a workaround with setting a quite long period of expiration. As far as I know with my experience with GAE It can be solved by setting a 
-proper expiration time, based on observations about the loads of the app (e.g. empirically, how often the cache get set usually during production time). 
-Or a cron job that periodically add to the cache the  `{websafeConferenceKey}:featured` key with proper values taken from the datastore.
