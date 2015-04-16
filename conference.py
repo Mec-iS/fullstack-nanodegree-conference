@@ -747,7 +747,7 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getConferenceSessionsByType')
     def getConferenceSessionsByType(self, request):
         """Given a ConferenceKey and a sessionType, returns all the sessions of that type"""
-        sessions = self._get_sessions_in_a_conference(request.websafeConferenceKey).filter(Session.typeOfSession == request.sessionType)
+        sessions = self._get_sessions_in_a_conference(request.websafeConferenceKey).filter(Session.typeOfSession == request.sessionType).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
                 'No sessions for this conference/type couple: %s' % request.sessionType)
@@ -761,7 +761,7 @@ class ConferenceApi(remote.Service):
     def getConferenceSessionsByHighlight(self, request):
         """Get all the sessions in a Conference with the given highligh"""
         highlight = request.highlight
-        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.highlights == highlight)
+        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.highlights == highlight).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
                 'No sessions with this highlights couple: %s' % request.sessionType)
@@ -776,8 +776,7 @@ class ConferenceApi(remote.Service):
         """Get all the session for a Conference in a given date, order by startTime"""
         date = datetime.strptime(request.conferenceDate, "%Y-%m-%d").date()
         print date
-        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.startDate == date).order(Session.startTime)
-        print sessions
+        sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.startDate == date).order(Session.startTime).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
                 'No sessions in this day for this conference: %s' % request.sessionType)
