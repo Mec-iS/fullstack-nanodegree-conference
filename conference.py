@@ -612,6 +612,7 @@ class ConferenceApi(remote.Service):
     def _copySessionToForm(self, session):
         """Copy relevant fields from Session to SessionForm."""
         sf = SessionForm()
+        print str(session)
         for field in sf.all_fields():
             if hasattr(session, field.name):
                 # convert Date to date string; just copy others
@@ -621,7 +622,12 @@ class ConferenceApi(remote.Service):
                     setattr(sf, field.name, int(getattr(session, field.name)))
                 else:
                     setattr(sf, field.name, getattr(session, field.name))
-        setattr(sf, 'sessionKey', str(session.key.urlsafe()))
+        if type(session) is Session:
+            # if Session object
+            setattr(sf, 'sessionKey', str(session.key.urlsafe()))
+        else:
+            # if request
+            setattr(sf, 'sessionKey', str(session.sessionKey))
         sf.check_initialized()
         return sf
 
@@ -635,6 +641,7 @@ class ConferenceApi(remote.Service):
         data = {field.name: getattr(request, field.name) for field in request.all_fields()}
         data['conference'] = ndb.Key(urlsafe=request.websafeConferenceKey)
         del data['websafeConferenceKey']
+        del data['sessionKey']
 
         # convert dates from strings
         try:
@@ -642,8 +649,10 @@ class ConferenceApi(remote.Service):
         except Exception:
             raise ValueError("'startDate' needed. Cannot be void or in the wrong format (year-month-day)")
 
-        if data['startTime']:
+        try:
             data['startTime'] = datetime.strptime(data['startTime'], '%H:%M').time()
+        except Exception:
+            raise ValueError("'startTime' needed: '%H:%M' ")
 
         # check if duration is an integer
         try:
@@ -652,32 +661,14 @@ class ConferenceApi(remote.Service):
             raise ValueError("'duration' needed. Has to be an integer (minutes) and cannot be void")
 
         # creation of Session & return (modified) SessionForm
-        Session(**data).put()
+        new_key = Session(**data).put()
 
-        # check if featured speaker, if true use memcache
-        featured_speaker = Session.query(Session.conference == data['conference']).filter(Session.speaker == data['speaker'])
-        if featured_speaker.count() != 1:
-            mem_key = request.websafeConferenceKey + ':featured'
-            if memcache.get(mem_key) is None:
-                # key: '{webKey}:featured', add to memcache
-                sessions = [{'speaker': data['speaker'], 'sessions': [f.name for f in featured_speaker]}]
-                memcache.add(mem_key, sessions, 36000)
-            else:
-                # key: '{webKey}:featured', set memcache
-                state = list(memcache.get(mem_key))
-                in_list = False
-                for s in state:
-                    if s['speaker'] == data['speaker']:
-                        # speaker is already in memcache object, append to sessions list
-                        in_list = True
-                        s['sessions'] = [f.name for f in featured_speaker]
-                        break
-                if not in_list:
-                    # speaker is not in memcache object, append speaker to list
-                    state.append({'speaker': data['speaker'], 'sessions': [f.name for f in featured_speaker]})
+        taskqueue.add(params={'conferenceKey': request.websafeConferenceKey,
+            'speaker': data['speaker']},
+            url='/tasks/get_featured_speaker'
+        )
 
-                memcache.set(mem_key, state)
-
+        request.sessionKey = new_key.urlsafe()
         return self._copySessionToForm(request)
 
     def _get_sessions_in_a_conference(self, websafe_key):
@@ -722,8 +713,9 @@ class ConferenceApi(remote.Service):
         """Given a conference, return all sessions (by websafeConferenceKey)."""
         sessions = self._get_sessions_in_a_conference(request.websafeConferenceKey).fetch()
         if not sessions:
-            raise endpoints.NotFoundException(
-                'No sessions found for conference key: %s' % request.websafeConferenceKey)
+            return SessionForms(
+                items=[]
+            )
         # return SessionForm
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
@@ -747,10 +739,13 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getConferenceSessionsByType')
     def getConferenceSessionsByType(self, request):
         """Given a ConferenceKey and a sessionType, returns all the sessions of that type"""
-        sessions = self._get_sessions_in_a_conference(request.websafeConferenceKey).filter(Session.typeOfSession == request.sessionType).fetch()
-        if not sessions:
+        try:
+            sessions = self._get_sessions_in_a_conference(request.websafeConferenceKey).filter(Session.typeOfSession == request.sessionType).fetch()
+        except Exception:
+            # if type value is not among model's choices
             raise endpoints.NotFoundException(
-                'No sessions for this conference/type couple: %s' % request.sessionType)
+                'BadValueError: string must be of one of the given sessionType: %s' % request.sessionType)
+
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
         )
@@ -759,12 +754,12 @@ class ConferenceApi(remote.Service):
             path='sessions/{websafeConferenceKey}/by/highlights/{highlight}',
             http_method='GET', name='getConferenceSessionsByHighlight')
     def getConferenceSessionsByHighlight(self, request):
-        """Get all the sessions in a Conference with the given highligh"""
+        """Get all the sessions in a Conference with the given highlight"""
         highlight = request.highlight
         sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.highlights == highlight).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
-                'No sessions with this highlights couple: %s' % request.sessionType)
+                'No sessions with this conference/highlights couple: %s' % request.sessionType)
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
         )
@@ -774,12 +769,16 @@ class ConferenceApi(remote.Service):
             http_method='GET', name='getConferenceSessionsByDate')
     def getConferenceSessionsByDate(self, request):
         """Get all the session for a Conference in a given date, order by startTime"""
-        date = datetime.strptime(request.conferenceDate, "%Y-%m-%d").date()
-        print date
+        try:
+           date = datetime.strptime(request.conferenceDate, "%Y-%m-%d").date()
+        except Exception:
+            # if date value is formatted wrongly
+            raise endpoints.NotFoundException(
+                'Date has to be formatted Y-m-d: %s' % request.conferenceDate)
         sessions = Session.query(Session.conference == ndb.Key(urlsafe=request.websafeConferenceKey)).filter(Session.startDate == date).order(Session.startTime).fetch()
         if not sessions:
             raise endpoints.NotFoundException(
-                'No sessions in this day for this conference: %s' % request.sessionType)
+                'No sessions in this day for this conference: %s' % date)
         return SessionForms(
             items=[self._copySessionToForm(session) for session in sessions]
         )
@@ -830,12 +829,16 @@ class ConferenceApi(remote.Service):
                 'This key is not a Session instance: %s' % sessionKey)
 
         # add session to wishlist
-        try:
-            prof.sessionKeysWishlist.append(sessionKey)
-            prof.put()
-        except Exception:
-            raise endpoints.InternalServerErrorException(
-                'Error in storing the wishlist')
+        if sessionKey not in prof.sessionKeysWishlist:
+            try:
+                prof.sessionKeysWishlist.append(sessionKey)
+                prof.put()
+            except Exception:
+                raise endpoints.InternalServerErrorException(
+                    'Error in storing the wishlist')
+        else:
+            raise endpoints.NotFoundException(
+                    'Session already in the wishlist')
 
         return BooleanMessage(data=True)
 
