@@ -104,8 +104,8 @@ Implementations endpoints:<br>
 `sessions/{websafeConferenceKey}/by/date/{conferenceDate}` > `conference.getConferenceSessionsByDate`
 
 
-- Query Problem:Probably the problem is that: `Only one inequality filter per query is supported`.<br>
-The datastore doesn't allow to have two inequality filters in the same query: 
+- Query Problem: Probably the problem is that: `Only one inequality filter per query is supported`.<br>
+The datastore doesn't allow to have two inequality filters on different properties in the same query: 
 ```
 sessions = Session.query(Session.typeOfSession != 'workshop', 
                           Session.startTime < datetime.strptime('19:00', '%H:%M').time())  # IT DOESN'T WORK
